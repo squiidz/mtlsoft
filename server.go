@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"html/template"
 	"io/ioutil"
 	"net/http"
 
@@ -9,31 +11,52 @@ import (
 	"github.com/go-zoo/claw/mw"
 )
 
+type Frame struct {
+	Header template.HTML
+	Footer template.HTML
+}
+
+type Product struct {
+	Frame   Frame
+	Service template.HTML
+}
+
 const (
-	INDEX   = "index.html"
-	CONTACT = "contact.html"
-	OUTILS  = "outils.html"
+	INDEX    = "index.html"
+	CONTACT  = "contact.html"
+	OUTILS   = "outils.html"
+	ABOUT    = "about.html"
+	SERVICE  = "service.html"
+	NOTFOUND = "404.html"
+
+	HEADER = "template/header.html"
+	FOOTER = "template/footer.html"
 )
 
 var (
-	IndexCont   []byte
-	ContactCont []byte
-	OutilsCont  []byte
+	muxx = bone.New()
+
+	WebFrame    = Frame{}
+	ProductList = Product{}
 )
 
 func init() {
-	IndexCont, _ = ioutil.ReadFile(INDEX)
-	ContactCont, _ = ioutil.ReadFile(CONTACT)
-	OutilsCont, _ = ioutil.ReadFile(OUTILS)
+	header, _ := ioutil.ReadFile(HEADER)
+	footer, _ := ioutil.ReadFile(FOOTER)
+	WebFrame.Header = template.HTML(header)
+	WebFrame.Footer = template.HTML(footer)
+	ProductList.Frame = WebFrame
 }
 
 func main() {
-	muxx := bone.New()
+	muxx.NotFound(NotFound)
 	middle := claw.New(mw.Logger)
 
 	muxx.Get("/", http.HandlerFunc(IndexHandler))
 	muxx.Get("/contact", http.HandlerFunc(ContactHandler))
 	muxx.Get("/outils", http.HandlerFunc(OutilsHandler))
+	muxx.Get("/about", http.HandlerFunc(AboutHandler))
+	muxx.Get("/services/:name", http.HandlerFunc(ServiceHandler))
 
 	muxx.Handle("/js/", http.StripPrefix("/js/", http.FileServer(http.Dir("js"))))
 	muxx.Handle("/css/", http.StripPrefix("/css/", http.FileServer(http.Dir("css"))))
@@ -45,13 +68,66 @@ func main() {
 }
 
 func IndexHandler(rw http.ResponseWriter, req *http.Request) {
-	rw.Write(IndexCont)
+	if req.RequestURI != "/" {
+		muxx.HandleNotFound(rw, req)
+		return
+	}
+	tmpl, err := template.ParseFiles(INDEX)
+	if err != nil {
+		muxx.HandleNotFound(rw, req)
+		return
+	}
+	tmpl.Execute(rw, WebFrame)
 }
 
 func ContactHandler(rw http.ResponseWriter, req *http.Request) {
-	rw.Write(ContactCont)
+	tmpl, err := template.ParseFiles(CONTACT)
+	if err != nil {
+		muxx.HandleNotFound(rw, req)
+		return
+	}
+	tmpl.Execute(rw, WebFrame)
 }
 
 func OutilsHandler(rw http.ResponseWriter, req *http.Request) {
-	rw.Write(OutilsCont)
+	tmpl, err := template.ParseFiles(OUTILS)
+	if err != nil {
+		muxx.HandleNotFound(rw, req)
+		return
+	}
+	tmpl.Execute(rw, WebFrame)
+}
+
+func AboutHandler(rw http.ResponseWriter, req *http.Request) {
+	tmpl, err := template.ParseFiles(ABOUT)
+	if err != nil {
+		muxx.HandleNotFound(rw, req)
+		return
+	}
+	tmpl.Execute(rw, WebFrame)
+}
+
+func ServiceHandler(rw http.ResponseWriter, req *http.Request) {
+	value := bone.GetValue(req, "name")
+	prodData, err := ioutil.ReadFile(fmt.Sprintf("template/services/%s.html", value))
+	if err != nil {
+		muxx.HandleNotFound(rw, req)
+		return
+	}
+	ProductList.Service = template.HTML(prodData)
+	tmpl, err := template.ParseFiles(SERVICE)
+	if err != nil {
+		muxx.HandleNotFound(rw, req)
+		return
+	}
+	tmpl.Execute(rw, ProductList)
+}
+
+func NotFound(rw http.ResponseWriter, req *http.Request) {
+	tmpl, err := template.ParseFiles(NOTFOUND)
+	if err != nil {
+		muxx.HandleNotFound(rw, req)
+		return
+	}
+	tmpl.Execute(rw, WebFrame)
 }
