@@ -12,13 +12,14 @@ import (
 )
 
 type Frame struct {
+	Head   template.HTML
 	Header template.HTML
 	Footer template.HTML
 }
 
-type Product struct {
-	Frame   Frame
-	Service template.HTML
+type Service struct {
+	Frame    Frame
+	Services template.HTML
 }
 
 const (
@@ -29,6 +30,7 @@ const (
 	SERVICE  = "service.html"
 	NOTFOUND = "404.html"
 
+	HEAD   = "template/head.html"
 	HEADER = "template/header.html"
 	FOOTER = "template/footer.html"
 )
@@ -37,15 +39,19 @@ var (
 	muxx = bone.New()
 
 	WebFrame    = Frame{}
-	ProductList = Product{}
+	ServiceList = Service{}
 )
 
 func init() {
+	head, _ := ioutil.ReadFile(HEAD)
 	header, _ := ioutil.ReadFile(HEADER)
 	footer, _ := ioutil.ReadFile(FOOTER)
+
+	WebFrame.Head = template.HTML(head)
 	WebFrame.Header = template.HTML(header)
 	WebFrame.Footer = template.HTML(footer)
-	ProductList.Frame = WebFrame
+
+	ServiceList.Frame = WebFrame
 }
 
 func main() {
@@ -114,13 +120,13 @@ func ServiceHandler(rw http.ResponseWriter, req *http.Request) {
 		muxx.HandleNotFound(rw, req)
 		return
 	}
-	ProductList.Service = template.HTML(prodData)
+	ServiceList.Services = template.HTML(prodData)
 	tmpl, err := template.ParseFiles(SERVICE)
 	if err != nil {
 		muxx.HandleNotFound(rw, req)
 		return
 	}
-	tmpl.Execute(rw, ProductList)
+	tmpl.Execute(rw, ServiceList)
 }
 
 func NotFound(rw http.ResponseWriter, req *http.Request) {
