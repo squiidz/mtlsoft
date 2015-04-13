@@ -15,6 +15,7 @@ type Frame struct {
 	Head   template.HTML
 	Header template.HTML
 	Footer template.HTML
+	Foot   template.HTML
 }
 
 type Service struct {
@@ -33,6 +34,7 @@ const (
 	HEAD   = "template/head.html"
 	HEADER = "template/header.html"
 	FOOTER = "template/footer.html"
+	FOOT   = "template/foot.html"
 )
 
 var (
@@ -46,10 +48,12 @@ func init() {
 	head, _ := ioutil.ReadFile(HEAD)
 	header, _ := ioutil.ReadFile(HEADER)
 	footer, _ := ioutil.ReadFile(FOOTER)
+	foot, _ := ioutil.ReadFile(FOOT)
 
 	WebFrame.Head = template.HTML(head)
 	WebFrame.Header = template.HTML(header)
 	WebFrame.Footer = template.HTML(footer)
+	WebFrame.Foot = template.HTML(foot)
 
 	ServiceList.Frame = WebFrame
 }
